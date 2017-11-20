@@ -1,2 +1,5 @@
 *.class
 *.log
+*.html
+*.sbt
+src/main/resources/**
