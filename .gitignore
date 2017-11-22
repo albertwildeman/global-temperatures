@@ -3,3 +3,8 @@
 *.html
 *.sbt
 src/main/resources/**
+.idea/**
+capstone-ui/target/**
+project/project/**
+project/target/**
+target/**
