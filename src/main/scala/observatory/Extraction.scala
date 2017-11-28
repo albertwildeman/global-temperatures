@@ -33,31 +33,35 @@ object Extraction {
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
 
+    def readAsAllDoubles(inputFile: String, columnNames: List[String]): DataFrame = {
+      def allDoublesRow(line: List[String]): Row = {
+        val typeCorrectedStations: List[Any] = line.map(_.toDouble)
+        Row.fromSeq(typeCorrectedStations.toSeq)
+      }
+      def dfSchema(columnNames: List[String]): StructType = {
+        StructType(
+          columnNames.map(StructField(_, DoubleType, nullable=false))
+        )
+      }
+
+      val rdd = spark.sparkContext.textFile(inputFile)
+        .map(_.split(",").to[List])
+        .filter(list => !list.contains(""))
+        .map(allDoublesRow)
+
+      spark.createDataFrame(rdd, dfSchema(columnNames))
+    }
+
     // Compose schema for both files
     val stationColumns:      List[String] = List("STN", "WBAN", "lat", "long")
-//    val temperaturesColumns: List[String] = List("STN", "WBAN", "month", "day", "temp")
+    val temperatureColumns: List[String] = List("STN", "WBAN", "month", "day", "temp")
 
-    def stationsRow(line: List[String]): Row = {
-      val typeCorrectedStations: List[Any] = line.map(_.toDouble)
-      Row.fromSeq(typeCorrectedStations.toSeq)
-    }
-    def dfSchemaStations(columnNames: List[String]): StructType = {
+    val df_stations = readAsAllDoubles(stationsFile, stationColumns)
+    val df_temperatures = readAsAllDoubles(temperaturesFile, temperatureColumns)
 
-      // Separate treatment of head and tail
-      val columnStructFields: List[StructField] = columnNames.map(StructField(_, DoubleType, nullable=false))
-      StructType(columnStructFields)
-    }
-    val stationSchema = dfSchemaStations(stationColumns)
-
-    val data_stations = spark.sparkContext.textFile(stationsFile)
-      .map(_.split(",").to[List])
-      .filter(list => !list.contains(""))
-      .map(stationsRow)
-
-//    data_stations.take(5).foreach(println(_))
-    val df_stations = spark.createDataFrame(data_stations, stationSchema)
 
     df_stations.show(5)
+    df_temperatures.show(5)
 
     val dummyOut: Iterable[(LocalDate, Location, Temperature)] = List()
     dummyOut
