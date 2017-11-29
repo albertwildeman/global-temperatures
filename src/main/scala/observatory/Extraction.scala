@@ -1,12 +1,13 @@
 package observatory
 
-import java.time.LocalDate
+import java.time.{LocalDate, Month}
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.expressions.DayOfMonth
 import org.apache.spark.sql.types._
 
 
@@ -53,18 +54,27 @@ object Extraction {
     }
 
     // Compose schema for both files
-    val stationColumns:      List[String] = List("STN", "WBAN", "lat", "long")
-    val temperatureColumns: List[String] = List("STN", "WBAN", "month", "day", "temp")
+    val stationColumns:      List[String] = List("STN", "WBAN", "lat", "lon")
+    val temperatureColumns: List[String] = List("STN", "WBAN", "month", "day", "tempF")
 
     val df_stations = readAsAllDoubles(stationsFile, stationColumns)
     val df_temperatures = readAsAllDoubles(temperaturesFile, temperatureColumns)
 
+    // Join the two datasets
+    val df_joint = df_stations
+      .join(df_temperatures, usingColumns = Seq("STN", "WBAN"))
+      .drop("STN", "WBAN")
 
-    df_stations.show(5)
-    df_temperatures.show(5)
+    // convert temperature from F to C
+    val tempInC = df_joint
+      .withColumn("tempC", (col("tempF")-lit(32))*lit(5f/9))
+      .drop("tempF")
 
-    val dummyOut: Iterable[(LocalDate, Location, Temperature)] = List()
-    dummyOut
+    tempInC.collect.map(r => (
+      LocalDate.of(year, r(2).asInstanceOf[Double].toInt, r(3).asInstanceOf[Double].toInt),
+      Location(r(0).asInstanceOf[Double], r(1).asInstanceOf[Double]),
+      r(4).asInstanceOf[Temperature]
+      )).toSeq
   }
 
   /**
