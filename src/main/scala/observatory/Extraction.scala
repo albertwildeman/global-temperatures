@@ -9,12 +9,13 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.DayOfMonth
 import org.apache.spark.sql.types._
-
-
+import org.apache.log4j.{Level, Logger}
 /**
   * 1st milestone: data extraction
   */
 object Extraction {
+
+  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
 
   val spark: SparkSession =
     SparkSession
@@ -33,32 +34,31 @@ object Extraction {
     * @return A sequence containing triplets (date, location, temperature)
     */
   def locateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): Iterable[(LocalDate, Location, Temperature)] = {
+    val df: DataFrame = sparkLocateTemperatures(year, stationsFile, temperaturesFile)
 
-    def readAsAllDoubles(inputFile: String, columnNames: List[String]): DataFrame = {
-      def allDoublesRow(line: List[String]): Row = {
-        val typeCorrectedStations: List[Any] = line.map(_.toDouble)
-        Row.fromSeq(typeCorrectedStations.toSeq)
-      }
-      def dfSchema(columnNames: List[String]): StructType = {
-        StructType(
-          columnNames.map(StructField(_, DoubleType, nullable=false))
-        )
-      }
+//    case class locDateTemp
+//    df.as[]
 
-      val rdd = spark.sparkContext.textFile(inputFile)
-        .map(_.split(",").to[List])
-        .filter(list => !list.contains(""))
-        .map(allDoublesRow)
+    df.collect.map(r => (
+      LocalDate.of(year, r(2).asInstanceOf[Double].toInt, r(3).asInstanceOf[Double].toInt),
+      Location(r(0).asInstanceOf[Double], r(1).asInstanceOf[Double]),
+      r(4).asInstanceOf[Temperature]
+      )).toSeq
+  }
 
-      spark.createDataFrame(rdd, dfSchema(columnNames))
-    }
+  def sparkLocateTemperatures(year: Year, stationsFile: String, temperaturesFile: String): DataFrame = {
 
     // Compose schema for both files
-    val stationColumns:      List[String] = List("STN", "WBAN", "lat", "lon")
+    val stationColumns:     List[String] = List("STN", "WBAN", "lat", "lon")
     val temperatureColumns: List[String] = List("STN", "WBAN", "month", "day", "tempF")
 
-    val df_stations = readAsAllDoubles(stationsFile, stationColumns)
-    val df_temperatures = readAsAllDoubles(temperaturesFile, temperatureColumns)
+    def csv_to_df(path: String, columns: List[String]): DataFrame = {
+      val schema = StructType(columns.map(StructField(_, DoubleType, nullable=false)))
+      spark.read.schema(schema).csv(path)
+    }
+
+    val df_stations = csv_to_df(stationsFile, stationColumns)
+    val df_temperatures = csv_to_df(temperaturesFile, temperatureColumns)
 
     // Join the two datasets
     val df_joint = df_stations
@@ -66,15 +66,11 @@ object Extraction {
       .drop("STN", "WBAN")
 
     // convert temperature from F to C
-    val tempInC = df_joint
+    val tempInC: DataFrame = df_joint
       .withColumn("tempC", (col("tempF")-lit(32))*lit(5f/9))
       .drop("tempF")
 
-    tempInC.collect.map(r => (
-      LocalDate.of(year, r(2).asInstanceOf[Double].toInt, r(3).asInstanceOf[Double].toInt),
-      Location(r(0).asInstanceOf[Double], r(1).asInstanceOf[Double]),
-      r(4).asInstanceOf[Temperature]
-      )).toSeq
+    tempInC
   }
 
   /**
@@ -82,7 +78,11 @@ object Extraction {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
-    ???
+    sparkAverageRecords(records.toList.toDS).collect().toSeq
+  }
+
+  def sparkAverageRecords(records: Dataset[(LocalDate, Location, Temperature)]): Dataset[(Location, Temperature)] = {
+    records.groupByKey(_._2).agg(avg($"tempC").as[Double])
   }
 
 }

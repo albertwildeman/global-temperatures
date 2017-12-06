@@ -15,8 +15,9 @@ class ExtractionTest extends FunSuite {
   }
   test("Small extraction test") {
     new TestExtraction {
-      val joined = locateTemperatures(year, stationsFile, temperaturesFile)
-      println(joined)
+      val joined = sparkLocateTemperatures(year, stationsFile, temperaturesFile)
+      joined.show()
+//      val averaged = sparkAverageRecords(joined)
       assert(5 === 5)
     }
   }
