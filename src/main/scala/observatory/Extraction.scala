@@ -39,21 +39,23 @@ object Extraction {
     val stationsDF =
       fromInputStream(getClass getResourceAsStream stationsFile)
         .getLines()
-        .filter(! _.split(",").contains(""))
-        .map(line => (line.split(",")(0).toInt, line.split(",")(1).toInt,
-                      line.split(",")(2).toDouble, line.split(",")(3).toDouble))
-        .toList
-        .toDF("STN", "WBAN", "lat", "lon")
+        .filter(_.split(",").length==4)
+        .map(line => (line.split(",")(0),
+                      line.split(",")(1),
+                      line.split(",")(2).toDouble,
+                      line.split(",")(3).toDouble))
+        .toList.toDF("STN", "WBAN", "lat", "lon")
 
     val temperaturesDF =
       fromInputStream(getClass getResourceAsStream temperaturesFile)
         .getLines()
-        .filter(! _.split(",").contains(""))
-        .map(line => (line.split(",")(0).toInt, line.split(",")(1).toInt,
-                      line.split(",")(2).toDouble, line.split(",")(3).toDouble, line.split(",")(4).toDouble))
-        .toList
-        .toDF("STN", "WBAN", "month", "day", "tempInF")
-
+        .filter(_.split(",").length==5)
+        .map(line => (line.split(",")(0),
+                      line.split(",")(1),
+                      line.split(",")(2).toDouble,
+                      line.split(",")(3).toDouble,
+                      line.split(",")(4).toDouble))
+        .toList.toDF("STN", "WBAN", "month", "day", "tempInF")
 
     val df: DataFrame = sparkLocateTemperatures(year, stationsDF, temperaturesDF)
 
@@ -62,22 +64,9 @@ object Extraction {
       Location(r(0).asInstanceOf[Double], r(1).asInstanceOf[Double]),
       r(4).asInstanceOf[Temperature]
       )).toSeq
-//    List()
   }
 
   def sparkLocateTemperatures(year: Year, stationsDF: DataFrame, temperaturesDF: DataFrame): DataFrame = {
-
-//    // Compose schema for both files
-//    val stationColumns:     List[String] = List("STN", "WBAN", "lat", "lon")
-//    val temperatureColumns: List[String] = List("STN", "WBAN", "month", "day", "tempInF")
-//
-//    def csv_to_df(path: String, columns: List[String]): DataFrame = {
-//      val schema = StructType(columns.map(StructField(_, DoubleType, nullable=false)))
-//      spark.read.schema(schema).csv(path)
-//    }
-//
-//    val df_stations = csv_to_df(stationsFile, stationColumns)
-//    val df_temperatures = csv_to_df(temperaturesFile, temperatureColumns)
 
     // Join the two dataframes
     val df_joint = stationsDF
@@ -85,11 +74,11 @@ object Extraction {
       .drop("STN", "WBAN")
 
     // convert temperature from F to C
-    val tempInC: DataFrame = df_joint
-      .withColumn("tempInC", (col("tempInF")-lit(32))*lit(5f/9))
+    val df_tempInC: DataFrame = df_joint
+      .withColumn("tempInC", (col("tempInF")-lit(32))*lit(5f)/lit(9))
       .drop("tempInF")
 
-    tempInC
+    df_tempInC
   }
 
   /**
@@ -98,11 +87,18 @@ object Extraction {
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
     List()
-//    sparkAverageRecords(records.toList.toDS).collect().toSeq
+//    val recordsDF = records.toList
+//      .map(tuple => (tuple._2, tuple._3))
+//      .map(line => (line.split(",")(0).toInt, line.split(",")(1).toInt,
+//      line.split(",")(2).toDouble, line.split(",")(3).toDouble, line.split(",")(4).toDouble))
+//      .toList
+//      .toDF("STN", "WBAN", "month", "day", "tempInF")
+//
+//    sparkAverageRecords(records.toList.toDF).collect().toSeq
   }
 
-  def sparkAverageRecords(records: Dataset[(LocalDate, Location, Temperature)]): Dataset[(Location, Temperature)] = {
-    records.groupByKey(_._2).agg(avg($"tempInC").as[Double])
+  def sparkAverageRecords(records: Dataset[(Location, Temperature)]): Dataset[(Location, Temperature)] = {
+    records.groupByKey(_._1).agg(avg($"tempInC").as[Double])
   }
 
 }
