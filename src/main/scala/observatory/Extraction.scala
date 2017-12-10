@@ -86,19 +86,49 @@ object Extraction {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
-    List()
-//    val recordsDF = records.toList
+//    val records_DF = records
 //      .map(tuple => (tuple._2, tuple._3))
-//      .map(line => (line.split(",")(0).toInt, line.split(",")(1).toInt,
-//      line.split(",")(2).toDouble, line.split(",")(3).toDouble, line.split(",")(4).toDouble))
-//      .toList
-//      .toDF("STN", "WBAN", "month", "day", "tempInF")
-//
-//    sparkAverageRecords(records.toList.toDF).collect().toSeq
+//      .toList.toDS()
+//    sparkAverageRecords(records_DF).collect().toSeq
+
+    val recordsArray = records.toArray[(LocalDate, Location, Temperature)]
+    var M = scala.collection.mutable.Map[Location, (Temperature, Int)]()
+    val nRecords: Int = recordsArray.size
+    var iRecord: Int = 0
+
+    while (iRecord < nRecords){
+      val loc  = recordsArray(iRecord)._2
+      val temp = recordsArray(iRecord)._3
+
+      if (M.contains(loc)){
+        M(loc) = (M(loc)._1 + temp, M(loc)._2 + 1)
+      }
+      else {
+        val n = (temp, 1)
+        M += (loc -> n)
+      }
+      iRecord += 1
+    }
+    M.mapValues{case (tempSum, tempCount) => tempSum/tempCount}.toSeq
   }
 
   def sparkAverageRecords(records: Dataset[(Location, Temperature)]): Dataset[(Location, Temperature)] = {
-    records.groupByKey(_._1).agg(avg($"tempInC").as[Double])
+//    records.groupBy("_1").avg("_2").as[(Location, Temperature)]
+    records.groupByKey(_._1).agg(avg($"_2").as[Double])
+
+//    records
+//      .groupByKey(_._1)
+//      .mapGroups((k, vs) => (k, vs.foldLeft(0.0,0)((acc, v) => (acc._1+v._2, acc._2+1))))
+//      .map(tup => (tup._1, (tup._2._1/tup._2._2)))
+
+
+
+//    records.groupByKey(_._1)
+//      .mapValues(tup => (tup._1, tup._2, 1))
+//      .reduceGroups((a: (Location, Temperature, Int), b: (Location, Temperature, Int)) => (a._1, a._2+b._2, a._3+b._3))
+//        .map(tup => (tup._1, tup._2._2 / tup._2._3))
+//      .as[(Location, Temperature)]
+
   }
 
 }
