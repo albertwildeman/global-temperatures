@@ -114,12 +114,33 @@ object Visualization {
         interpolateColor(colors, predictTemperature(temperatures, locate(x,y)))
     }
 
-    val pixelArray: Array[Pixel] = colorArray.map(c => Pixel(c.red, c.green, c.blue, 1))
+    val pixelArray: Array[Pixel] = colorArray.map(c => Pixel(c.red, c.green, c.blue, 127))
 
     val img = Image(width, height, pixelArray)
-//    img.output(new java.io.File("target/test-image.png"))
     img
   }
 
+  def visualizeAnyTile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
+
+    def locate(x: Int, y: Int): Location ={
+      val longitude = -180 + x
+      val latitude = 90 - y
+      Location(latitude, longitude)
+    }
+
+    val width = 360
+    val height = 180
+
+    val colorArray = new Array[Color](width*height)
+    for (x <- 0 until width; y <- 0 until height) {
+      colorArray(x + width*y) =
+        interpolateColor(colors, predictTemperature(temperatures, locate(x,y)))
+    }
+
+    val pixelArray: Array[Pixel] = colorArray.map(c => Pixel(c.red, c.green, c.blue, 127))
+
+    val img = Image(width, height, pixelArray)
+    img
+  }
 }
 
