@@ -2,11 +2,14 @@ package observatory
 
 import com.sksamuel.scrimage.{Image, Pixel}
 import scala.math._
+import Visualization.visualizeAny
 
 /**
   * 3rd milestone: interactive visualization
   */
 object Interaction {
+
+
 
   /**
     * @param tile Tile coordinates
@@ -28,18 +31,34 @@ object Interaction {
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image = {
     val topLeft = tileLocation(tile)
     val bottomRight = tileLocation(Tile(tile.x+1, tile.y+1, tile.zoom))
-    val tileTemperatures = temperatures.filter{case (loc, temp) =>
-      loc.lat>=topLeft.lat &&
-      loc.lon>=topLeft.lon &&
-      loc.lat<bottomRight.lat &&
-      loc.lon<bottomRight.lon
+//    val tileTemperatures = temperatures.filter{case (loc, temp) =>
+//      loc.lat>=topLeft.lat &&
+//      loc.lon>=topLeft.lon &&
+//      loc.lat<bottomRight.lat &&
+//      loc.lon<bottomRight.lon
+//    }
+
+    val width = 256
+    val height= 256
+
+
+    def locate(w: Int, h: Int, topLt: Location, botRt: Location)(x: Int, y: Int): Location = {
+      val dLongitude: Double = (botRt.lon - topLt.lon) / width
+      val dLatitude:  Double = (botRt.lat - topLt.lat) / height
+
+      val longitude = topLt.lon + x*dLongitude
+      val latitude  = topLt.lat - y*dLatitude
+
+      Location(latitude, longitude)
     }
-
-    println("tile: temperatures" + temperatures.size)
-    println("tile: tiletemperatures" + tileTemperatures.size)
-
-    Visualization.visualize(tileTemperatures, colors)
+    visualizeAny(
+      temperatures,
+      colors,
+      locate(width, height, topLeft, bottomRight),
+      width,
+      height)
   }
+
 
   /**
     * Generates all the tiles for zoom levels 0 to 3 (included), for all the given years.

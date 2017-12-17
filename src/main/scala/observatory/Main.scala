@@ -31,8 +31,8 @@ object Main extends App {
                     tile: Tile,
                     data: Iterable[(Location, Temperature)]): Unit = {
 
+    println("Generating image for tile " + tile.toString())
     val temperatures: Iterable[(Location, Temperature)] = data
-//    val img = visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)])
 
     val img = Interaction.tile(temperatures, colors, tile)
 
