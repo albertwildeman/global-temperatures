@@ -29,32 +29,22 @@ object Interaction {
     * @return A 256×256 image showing the contents of the given tile
     */
   def tile(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)], tile: Tile): Image = {
-    val topLeft = tileLocation(tile)
-    val bottomRight = tileLocation(Tile(tile.x+1, tile.y+1, tile.zoom))
-//    val tileTemperatures = temperatures.filter{case (loc, temp) =>
-//      loc.lat>=topLeft.lat &&
-//      loc.lon>=topLeft.lon &&
-//      loc.lat<bottomRight.lat &&
-//      loc.lon<bottomRight.lon
-//    }
-
     val width = 256
     val height= 256
-
-
-    def locate(w: Int, h: Int, topLt: Location, botRt: Location)(x: Int, y: Int): Location = {
-      val dLongitude: Double = (botRt.lon - topLt.lon) / width
-      val dLatitude:  Double = (botRt.lat - topLt.lat) / height
-
-      val longitude = topLt.lon + x*dLongitude
-      val latitude  = topLt.lat - y*dLatitude
-
-      Location(latitude, longitude)
+    def locate(x: Int, y: Int) = {
+      tileLocation(
+        Tile(
+          tile.x*256 + x,
+          tile.y*256 + y,
+          tile.zoom+8
+        )
+      )
     }
+
     visualizeAny(
       temperatures,
       colors,
-      locate(width, height, topLeft, bottomRight),
+      locate,
       width,
       height)
   }

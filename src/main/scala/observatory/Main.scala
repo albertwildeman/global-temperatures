@@ -44,11 +44,8 @@ object Main extends App {
       tile.y.toString() + ".png"
     img.output(new java.io.File(outFile))
   }
-  println("yay2.")
   Interaction.generateTiles[Iterable[(Location, Temperature)]](
     yearlyData,
     generateImage
   )
-  println("yay3.")
-
 }

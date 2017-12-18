@@ -72,8 +72,8 @@ object Visualization {
     if (lessOrEqual.isEmpty) points.toArray.sortBy(_._1).head._2
     else if (greater.isEmpty) points.toArray.sortBy(_._1).reverse.head._2
     else{
-      val low  = points.filter(_._1 <= value).toArray.reverse.head
-      val high = points.filter(_._1 > value).head
+      val low  = lessOrEqual.toArray.sortBy(_._1).reverse.head
+      val high = greater.toArray.sortBy(_._1).head
 
       val distToLow: Temperature = value-low._1
       val distToHigh: Temperature = high._1 - value
