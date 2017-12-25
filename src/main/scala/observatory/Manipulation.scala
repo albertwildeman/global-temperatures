@@ -1,9 +1,11 @@
 package observatory
 
+import Visualization.predictTemperature
 /**
   * 4th milestone: value-added information
   */
 object Manipulation {
+
 
   /**
     * @param temperatures Known temperatures
@@ -11,7 +13,20 @@ object Manipulation {
     *         returns the predicted temperature at this location
     */
   def makeGrid(temperatures: Iterable[(Location, Temperature)]): GridLocation => Temperature = {
-    ???
+    def tempAtGridLocation(gridLoc: GridLocation, temps: Iterable[(Location, Temperature)]): Temperature = {
+      val location = Location(gridLoc.lat.toDouble, gridLoc.lon.toDouble)
+      predictTemperature(temps, location)
+    }
+
+    val gridLocations = Array.tabulate[GridLocation](180,360){
+      (iLat, iLon) => new GridLocation(iLat-89, iLon-180)
+    }
+    val gridTemperatures = gridLocations.map(_.map(tempAtGridLocation(_, temperatures)))
+
+    def tempAtGridLoc(gridLoc: GridLocation): Temperature = {
+      gridTemperatures(gridLoc.lat+89)(gridLoc.lon+180)
+    }
+    tempAtGridLoc
   }
 
   /**
