@@ -109,7 +109,6 @@ object Extraction {
   }
 
   def sparkAverageRecords(records: Dataset[(Location, Temperature)]): Dataset[(Location, Temperature)] = {
-//    records.groupBy("_1").avg("_2").as[(Location, Temperature)]
     records.groupByKey(_._1).agg(avg($"_2").as[Double])
   }
 

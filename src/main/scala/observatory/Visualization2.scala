@@ -63,13 +63,13 @@ object Visualization2 {
       val upperLat = periodicBoundary(ceil(location.lat).toInt, -89, 90)
       val upperLon = periodicBoundary(ceil(location.lon).toInt, -180, 179)
 
-      val cellPoint: CellPoint = CellPoint(location.lat - floor(location.lat),
-                                           location.lon - floor(location.lon))
-
       val d00: Temperature = grid(GridLocation(lowerLon, lowerLat))
       val d01: Temperature = grid(GridLocation(upperLon, lowerLat))
       val d10: Temperature = grid(GridLocation(lowerLon, upperLat))
       val d11: Temperature = grid(GridLocation(upperLon, upperLat))
+
+      val cellPoint: CellPoint = CellPoint(location.lat - floor(location.lat),
+        location.lon - floor(location.lon))
 
       bilinearInterpolation(cellPoint, d00, d01, d10, d11)
     }
